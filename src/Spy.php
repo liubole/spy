@@ -14,6 +14,7 @@ class Inspect
     private $spid;
     private $tmpfile;
     private $trace = true;
+    private $pipes;
 
     /**
      * @var Inspect
@@ -60,7 +61,7 @@ class Inspect
         $ppid = getmypid();
         $this->tmpfile = $this->output_dir . "/$ppid.log";
         $command = sprintf($this->cmd, $ppid) . " >> ".$this->tmpfile." &";
-        $process = proc_open($command, array(), $pipes);
+        $process = proc_open($command, array(), $this->pipes);
         $var = proc_get_status($process);
         if ($spid = intval($var['pid']) + 1) {
             $this->spid = $spid;
@@ -75,8 +76,8 @@ class Inspect
     public function end()
     {
         if (!$this->trace) return;
-        if (isset($this->spid) && $this->spid) {
-            posix_kill($this->spid, SIGTERM);
+        if (isset($this->spid) && is_int($this->spid)) {
+            proc_close(proc_open('kill -9 ' . $this->spid, array(), $this->pipes));
         }
         if (isset($this->tmpfile) && $this->tmpfile && $this->output_file) {
             shell_exec("cat " . $this->tmpfile . " >> " . $this->output_file . "; rm -f " . $this->tmpfile);
